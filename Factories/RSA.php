@@ -4,6 +4,8 @@ namespace MTM\Encrypt\Factories;
 
 class RSA extends Base
 {
+	//use: $keyObj		= \MTM\Encrypt\Factories::getRSA()->$METHOD();
+	
 	public function getPrivateKey($strKey=null, $passPhrase=null)
 	{
 		$rObj	= new \MTM\Encrypt\Models\RSA\PrivateKey();
