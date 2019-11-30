@@ -17,9 +17,6 @@ class AES extends Base
 	}
 	public function getTool()
 	{
-		if (array_key_exists(__METHOD__, $this->_cStore) === false) {
-			$this->_cStore[__METHOD__]	= new \MTM\Encrypt\Tools\AES();
-		}
-		return $this->_cStore[__METHOD__];
+		return \MTM\Encrypt\Factories::getTools()->getAes();
 	}
 }

@@ -4,6 +4,8 @@ namespace MTM\Encrypt\Tools;
 
 class RSA
 {
+	protected $_sslCnfPath=null;
+	
 	public function sign($keyObj, $strData, $algo=OPENSSL_ALGO_SHA1)
 	{
 		$valid	= openssl_sign($strData, $sig, array($keyObj->get(), $keyObj->getPassPhrase()), $algo);
@@ -54,9 +56,9 @@ class RSA
 	public function getDecryptedPrivateKey($keyObj)
 	{
 		if ($keyObj->getPassPhrase() !== null) {
-			
-		    $res      = $this->getPrivateAsResource($keyObj);
-			$valid    = openssl_pkey_export($res, $pKey);
+
+		    $keyRes	= $this->getPrivateAsResource($keyObj);
+		    $valid	= openssl_pkey_export($keyRes, $pKey, null, array("config" => $this->getOpenSslPath()));
 			if ($valid === false) {
 				throw new \Exception("Failed to extract private");
 			} else {
@@ -230,6 +232,20 @@ class RSA
         } else {
             throw new \Exception("Failed to extract details for private key");
         }
+	}
+	private function getOpenSslPath()
+	{
+		if ($this->_sslCnfPath === null) {
+			//had to create a custom config file because centos8 would error
+			//when extracting the private key using openssl_pkey_export:
+			//openssl_error_string() -> "error:0E079065:configuration file routines:DEF_LOAD_BIO:missing equal sign"
+			
+			$sslObj				=  \MTM\Encrypt\Factories::getTools()->getOpenSsl();
+			$tmpFile			= \MTM\FS\Factories::getFiles()->getTempFile("cnf");
+			$tmpFile->setContent(implode("\n", $sslObj->getRSA()));
+			$this->_sslCnfPath	= $tmpFile->getPathAsString();
+		}
+		return $this->_sslCnfPath;
 	}
 	private function getPrivateAsResource($keyObj)
 	{
