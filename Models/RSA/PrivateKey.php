@@ -39,4 +39,18 @@ class PrivateKey extends Base
 	{
 		return $this->getTool()->sign($this, $strData, $algo);
 	}
+	public function getBits()
+	{
+		$rObj	= $this->getTool()->getPrivateKeyDetail($this);
+		return $rObj->bits;
+	}
+	public function isRSA()
+	{
+		$rObj	= $this->getTool()->getPrivateKeyDetail($this);
+		if ($rObj->type == "RSA") {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }
