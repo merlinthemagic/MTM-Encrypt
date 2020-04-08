@@ -30,6 +30,15 @@ $encObj	= $keyObj->aadEncrypt($text, $aadLen);
 
 ```
 
+### bring your own Aad data
+
+```
+$text		= "My secret message";
+$aad		= "some random data";
+$encObj	= $keyObj->encrypt($text, $aad);
+
+```
+
 ## Decrypt:
 
 ```

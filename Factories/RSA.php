@@ -8,14 +8,7 @@ class RSA extends Base
 	
 	public function getPrivateKey($strKey=null, $passPhrase=null)
 	{
-		$rObj	= new \MTM\Encrypt\Models\RSA\PrivateKey();
-		$rObj->setTool($this->getTool());
-		if ($strKey !== null) {
-			$rObj->set($strKey);
-		}
-		if ($passPhrase !== null) {
-			$rObj->setPassPhrase($passPhrase);
-		}
+		$rObj	= new \MTM\Encrypt\Models\RSA\PrivateKey($this->getTool(), $strKey, $passPhrase);
 		return $rObj;
 	}
 	public function getPublicKey($strKey=null)

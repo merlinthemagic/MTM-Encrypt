@@ -55,38 +55,24 @@ class RSA
 	}
 	public function getDecryptedPrivateKey($keyObj)
 	{
-		if ($keyObj->getPassPhrase() !== null) {
-
-		    $keyRes	= $this->getPrivateAsResource($keyObj);
-		    $valid	= openssl_pkey_export($keyRes, $pKey, null, array("config" => $this->getOpenSslPath()));
-			if ($valid === false) {
-				throw new \Exception("Failed to extract private");
-			} else {
-				return \MTM\Encrypt\Factories::getRSA()->getPrivateKey($pKey);
-			}
-
+		//will duplicate the key
+		$keyRes	= $this->getPrivateAsResource($keyObj);
+		$valid	= openssl_pkey_export($keyRes, $pKey, null, array("config" => $this->getOpenSslPath()));
+		if ($valid === false) {
+			throw new \Exception("Failed to extract private");
 		} else {
-			//not encrypted to start with 
-			return $keyObj;
+			return \MTM\Encrypt\Factories::getRSA()->getPrivateKey($pKey);
 		}
 	}
 	public function getEncryptedPrivateKey($keyObj, $newPassPhrase)
 	{
-		if ($keyObj->getPassPhrase() != $newPassPhrase) {
-			
-		    $res      = $this->getPrivateAsResource($keyObj);
-			$valid	  = openssl_pkey_export($res, $pKey, $newPassPhrase);
-			if ($valid === false) {
-				throw new \Exception("Failed to extract private");
-			} else {
-				
-				return \MTM\Encrypt\Factories::getRSA()->getPrivateKey($pKey, $newPassPhrase); 
-			}
-
+		//will duplicate the key
+		$res      = $this->getPrivateAsResource($keyObj);
+		$valid	  = openssl_pkey_export($res, $pKey, $newPassPhrase);
+		if ($valid === false) {
+			throw new \Exception("Failed to extract private");
 		} else {
-			//already encrypted with the same key
-			//should we really test is the key is encrypted at all?
-			return $keyObj;
+			return \MTM\Encrypt\Factories::getRSA()->getPrivateKey($pKey, $newPassPhrase);
 		}
 	}
 	public function getPrivateKeyDetail($keyObj)

@@ -6,9 +6,26 @@ class PrivateKey extends Base
 {		
 	private $_passPhrase=null;
 
+	public function __construct($toolObj=null, $strKey=null, $passPhrase=null)
+	{
+		if ($toolObj !== null) {
+			$this->setTool($toolObj);
+		}
+		if ($strKey !== null) {
+			$this->set($strKey);
+		}
+		if ($passPhrase !== null) {
+			//dont call setPassPhrase, endless loop that way
+			$this->_passPhrase	= $passPhrase;
+		}
+	}
 	public function setPassPhrase($str)
 	{
-		$this->_passPhrase	= $str;
+		if ($this->getPassPhrase() !== $str) {
+			//encrypt the string key
+			$this->set($this->getEncryptedKey($str)->get());
+			$this->_passPhrase	= $str;
+		}
 		return $this;
 	}
 	public function getPassPhrase()
@@ -21,6 +38,7 @@ class PrivateKey extends Base
 	}
 	public function getEncryptedKey($newPassPhrase)
 	{
+		//this returns a duplicate key with a new key
 	    return $this->getTool()->getEncryptedPrivateKey($this, $newPassPhrase);
 	}
 	public function getPublicKey()
