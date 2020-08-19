@@ -12,11 +12,16 @@ class AES
 	{
 		return openssl_random_pseudo_bytes($len);
 	}
-	public function encrypt($keyObj, $strData, $aad="")
+	public function encrypt($keyObj, $strData, $aad="", $opts=OPENSSL_RAW_DATA)
 	{
 		$ivLen		= openssl_cipher_iv_length($keyObj->getCipher());
-		$iv 		= $this->getRandomBytes($ivLen);
-		$encData	= openssl_encrypt($strData, $keyObj->getCipher(), $keyObj->get(), OPENSSL_RAW_DATA, $iv, $tag, $aad, 16);
+		if ($ivLen > 0) {
+			$iv 		= $this->getRandomBytes($ivLen);
+		} else {
+			$iv 		= "";
+		}
+		//silence the function or it will complain when the cipher does not support AEAD
+		$encData	= @openssl_encrypt($strData, $keyObj->getCipher(), $keyObj->get(), $opts, $iv, $tag, $aad, 16);
 		if ($encData !== false) {
 			
 			$rObj		= new \stdClass();
@@ -31,9 +36,9 @@ class AES
 			throw new \Exception("Failed to encrypt input");
 		}
 	}
-	public function decrypt($keyObj, $encData, $iv, $tag, $aad="")
+	public function decrypt($keyObj, $encData, $iv, $tag, $aad="", $opts=OPENSSL_RAW_DATA)
 	{
-		$decData		= openssl_decrypt($encData, $keyObj->getCipher(), $keyObj->get(), OPENSSL_RAW_DATA, $iv, $tag, $aad);
+		$decData		= openssl_decrypt($encData, $keyObj->getCipher(), $keyObj->get(), $opts, $iv, $tag, $aad);
 		if ($decData !== false) {
 			return $decData;
 		} else {
