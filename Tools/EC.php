@@ -2,7 +2,7 @@
 //© 2019 Martin Peter Madsen
 namespace MTM\Encrypt\Tools;
 
-class RSA
+class EC
 {
 	protected $_sslCnfPath=null;
 	
@@ -28,25 +28,30 @@ class RSA
 	        throw new \Exception("Failed to validate signature");
 	    }
 	}
-	public function createPrivateKey($bits=4096, $passPhrase=null)
+	public function createPrivateKey($curve="secp256k1", $passPhrase=null)
 	{
 		$keyConf = array(
-				"private_key_bits"	=> $bits,
-				"private_key_type"	=> OPENSSL_KEYTYPE_RSA,
+				"private_key_type"	=> OPENSSL_KEYTYPE_EC,
+				"curve_name"		=> $curve
 		);
-		
 		$res	= openssl_pkey_new($keyConf);
 		if (is_resource($res) === true) {
 			openssl_pkey_export($res, $pKey, $passPhrase);
 			openssl_free_key($res);
-			$rObj	= \MTM\Encrypt\Factories::getRSA()->getPrivateKey($pKey);
+			$rObj	= \MTM\Encrypt\Factories::getEC()->getPrivateKey($pKey);
 			$rObj->setPassPhrase($passPhrase);
-			
 			return $rObj;
 	
 		} else {
-			throw new \Exception("Invalid input");
+			throw new \Exception("Invalid input: " . openssl_error_string());
 		}
+	}
+	public function getPrivateKeyFromHex($str)
+	{
+		//example:
+		//$str	= "18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725";
+		//echo 302e0201010420 18e14a7b6a307f426a94f8114701e7c8e774e7f9a47e2c2035db29a206321725 a00706052b8104000a | xxd -r -p | openssl ec -inform d
+		//src: https://stackoverflow.com/questions/48101258/how-to-convert-an-ecdsa-key-to-pem-format
 	}
 	public function getPublicKeyFromPrivateKey($keyObj)
 	{
@@ -83,7 +88,7 @@ class RSA
         $detail	  = openssl_pkey_get_details($res);
         openssl_free_key($res);
         if ($detail !== false) {
-            
+        	
             if (isset($detail["key"]) === false || strlen($detail["key"]) < 1) {
                 throw new \Exception("Failed to extract public key, maybe invalid pass phrase");
             }
@@ -95,9 +100,16 @@ class RSA
                 $rObj->type         = "RSA";
                 $rObj->publicKey    = \MTM\Encrypt\Factories::getRSA()->getPublicKey($detail["key"]);
             } elseif (array_key_exists("ec", $detail) === true) {
-                $rObj->type         = "ECC";
-                $rObj->publicKey    = \MTM\Encrypt\Factories::getECC()->getPublicKey($detail["key"]);
-                //has curve too
+                $rObj->type         = "EC";
+                $rObj->curve		= $detail["ec"]["curve_name"];
+                $rObj->publicKey    = \MTM\Encrypt\Factories::getEC()->getPublicKey($detail["key"]);
+                
+                //test x / y with: openssl ec -in key.pem -text -noout -conv_form uncompressed
+                //src: https://stackoverflow.com/questions/29355027/what-method-does-openssl-use-to-combine-a-public-ec-keys-coordinates
+                $rObj->{"public-x"}	= bin2hex($detail["ec"]["x"]);
+                $rObj->{"public-y"}	= bin2hex($detail["ec"]["y"]);
+                $rObj->{"private"}	= bin2hex($detail["ec"]["d"]);
+                //d is private key
             } else {
                 $rObj->type         = "UNKNOWN";
                 $rObj->publicKey    = null;
@@ -109,54 +121,44 @@ class RSA
             throw new \Exception("Failed to extract details for private key");
         }
 	}
-	public function createKeyPair($bits=4096, $passPhrase=null)
+	public function createKeyPair($curve="secp256k1", $passPhrase=null)
 	{
 		$rObj			= new \stdClass();
-		$rObj->private	= $this->createPrivateKey($bits, $passPhrase);
-		$rObj->public	= $this->getPublicKeyFromPrivateKey($rObj->private);	
+		$rObj->private	= $this->createPrivateKey($curve, $passPhrase);
+		$rObj->public	= $this->getPublicKeyFromPrivateKey($rObj->private);
 		
 		return $rObj;
 	}
-	public function getPEM($keyObj)
-	{
-		//return a PEM certificate 
-		$tempKey	= \MHT\Factories::getFileSystems()->getSessionFile("key");
-		$tempKey->setContent($keyObj->get());
+// 	public function getPEM($keyObj)
+// 	{
+// 		//return a PEM certificate 
+// 		$tempKey	= \MHT\Factories::getFileSystems()->getSessionFile("key");
+// 		$tempKey->setContent($keyObj->get());
 		
-		$tempPem	= \MHT\Factories::getFileSystems()->getSessionFile("pem");
-		$cmdStr		= "openssl rsa -in '".$tempKey->getPathAsString()."' -out '".$tempPem->getPathAsString()."'";
+// 		$tempPem	= \MHT\Factories::getFileSystems()->getSessionFile("pem");
+// 		$cmdStr		= "openssl rsa -in '".$tempKey->getPathAsString()."' -out '".$tempPem->getPathAsString()."'";
 		
-		//need an interactive shell to fill in the details
-		$shellObj	= \MHIT\Factories::getDevices()->getShell("shared");
+// 		//need an interactive shell to fill in the details
+// 		$shellObj	= \MHIT\Factories::getDevices()->getShell("shared");
 		
-		//need to deal with fail case
-		if ($keyObj->getPassPhrase() === null) {
-			//without a passphrase the shell exits without needing input
-			$shellObj->exeCmd($cmdStr);
-		} else {
-			//enter passphrase
-			$shellObj->exeCmd($cmdStr, $tempKey->getName() . ":");
-			$shellObj->exeCmd($keyObj->getPassPhrase());
-		}
+// 		//need to deal with fail case
+// 		if ($keyObj->getPassPhrase() === null) {
+// 			//without a passphrase the shell exits without needing input
+// 			$shellObj->exeCmd($cmdStr);
+// 		} else {
+// 			//enter passphrase
+// 			$shellObj->exeCmd($cmdStr, $tempKey->getName() . ":");
+// 			$shellObj->exeCmd($keyObj->getPassPhrase());
+// 		}
 
-		return \MTM\Encrypt\Factories::getRSA()->getPrivateKey(trim($tempPem->getContent()));
-	}
+// 		return \MTM\Encrypt\Factories::getRSA()->getPrivateKey(trim($tempPem->getContent()));
+// 	}
 	public function encrypt($keyObj, $strData, $pad=OPENSSL_PKCS1_PADDING)
 	{
 		$valid	= openssl_public_encrypt($strData, $encData, $keyObj->get(), $pad);
 		if ($valid === true) {
 			return $encData;
 		} else {
-			
-			//if you use pad: OPENSSL_NO_PADDING, you must add padding yourself, i do not know where the bounderies are
-			
-		    //key size dictates how much data can be encrypted by a key
-		    //2048 == 245 chars
-			//4096 == 501 chars
-		    //8192 == 1013 chars
-		    //16384 == 2037 chars
-		    //32768 == 0 chars (refuses to encrypt)
-		    //run $this->encryptTest($key); to see max is posible if you need other sizes
 			throw new \Exception("Failed to encrypt");
 		}
 	}
@@ -168,41 +170,6 @@ class RSA
 		} else {
 			throw new \Exception("Failed to decrypt");
 		}
-	}
-	public function getPublicAsSSH($pkeyObj)
-	{
-	    //input private key
-	    $res       = $this->getPrivateAsResource($pkeyObj);
-	    $detail    = openssl_pkey_get_details($res);
-	    openssl_free_key($res);
-        if ($detail !== false) {
-            
-            //https://stackoverflow.com/questions/6648337/generate-ssh-keypair-form-php
-            $rData   = "";
-            $rData  .= pack("N", 7) . "ssh-rsa";
-            
-            $eData  = $detail["rsa"]["e"];
-            $eLen   = strlen($eData);
-            if (ord($eData[0]) & 0x80) {
-                $eLen++;
-                $eData   = "\x00" . $eData;
-            }
-            $rData  .= pack("Na*", $eLen, $eData);
-            
-            $nData  = $detail["rsa"]["n"];
-            $nLen   = strlen($nData);
-            if (ord($nData[0]) & 0x80) {
-                $nLen++;
-                $nData   = "\x00" . $nData;
-            }
-            $rData   .= pack("Na*", $nLen, $nData);
-            $encKey   = "ssh-rsa " . base64_encode($rData);
-
-            return \MTM\Encrypt\Factories::getRSA()->getPublicSshKey($encKey);
-            
-        } else {
-            throw new \Exception("Failed to extract details for private key");
-        }
 	}
 	private function getOpenSslPath()
 	{
