@@ -6,26 +6,37 @@ class RSA
 {
 	protected $_sslCnfPath=null;
 	
-	public function sign($keyObj, $strData, $algo=OPENSSL_ALGO_SHA1)
+	public function sign($keyObj, $strData, $algo=OPENSSL_ALGO_SHA256)
 	{
-		$valid	= openssl_sign($strData, $sig, array($keyObj->get(), $keyObj->getPassPhrase()), $algo);
+		if ($keyObj instanceof \MTM\Encrypt\Models\RSA\PrivateKey === true) {
+			$valid	= openssl_sign($strData, $sig, array($keyObj->get(), $keyObj->getPassPhrase()), $algo);
+		} else {
+			throw new \Exception("Not handled for key type");
+		}
+		
 		if ($valid === true) {
 			//bin data
 			return $sig;
 		} else {
-			throw new \Exception("Failed to sign input");
+			throw new \Exception("Failed to sign input: " . openssl_error_string());
 		}
 	}
-	public function verifySign($keyObj, $strData, $sig, $algo=OPENSSL_ALGO_SHA1)
+	public function verifySign($keyObj, $strData, $sig, $algo=OPENSSL_ALGO_SHA256)
 	{
-	    $valid	= @openssl_verify($strData, $sig, $keyObj->get(), $algo);
+		if ($keyObj instanceof \MTM\Encrypt\Models\RSA\PublicKey === true) {
+			$valid	= @openssl_verify($strData, $sig, $keyObj->get(), $algo);
+		} elseif ($keyObj instanceof \MTM\Encrypt\Models\RSA\PrivateKey === true) {
+			$valid	= @openssl_verify($strData, $sig, $keyObj->getPublicKey()->get(), $algo);
+		} else {
+			throw new \Exception("Not handled for key type");
+		}
 	    if ($valid === 1) {
 	        return true;
 	    } elseif ($valid === 0) {
 	        return false;
 	    } else {
 	        //-1 return on failure
-	        throw new \Exception("Failed to validate signature");
+	        throw new \Exception("Failed to validate signature: " . openssl_error_string());
 	    }
 	}
 	public function createPrivateKey($bits=4096, $passPhrase=null)
@@ -143,7 +154,14 @@ class RSA
 	}
 	public function encrypt($keyObj, $strData, $pad=OPENSSL_PKCS1_PADDING)
 	{
-		$valid	= openssl_public_encrypt($strData, $encData, $keyObj->get(), $pad);
+		if ($keyObj instanceof \MTM\Encrypt\Models\RSA\PrivateKey === true) {
+			$valid	= openssl_private_encrypt($strData, $encData, array($keyObj->get(), $keyObj->getPassPhrase()), $pad);
+		} elseif ($keyObj instanceof \MTM\Encrypt\Models\RSA\PublicKey === true) {
+			$valid	= openssl_public_encrypt($strData, $encData, $keyObj->get(), $pad);
+		} else {
+			throw new \Exception("Not handled for key type");
+		}
+
 		if ($valid === true) {
 			return $encData;
 		} else {
@@ -157,16 +175,22 @@ class RSA
 		    //16384 == 2037 chars
 		    //32768 == 0 chars (refuses to encrypt)
 		    //run $this->encryptTest($key); to see max is posible if you need other sizes
-			throw new \Exception("Failed to encrypt");
+			throw new \Exception("Failed to encrypt: ". openssl_error_string());
 		}
 	}
-	public function decrypt($keyObj, $strData)
+	public function decrypt($keyObj, $strData, $pad=OPENSSL_PKCS1_PADDING)
 	{
-		$valid	= openssl_private_decrypt($strData, $decData, array($keyObj->get(), $keyObj->getPassPhrase()));
+		if ($keyObj instanceof \MTM\Encrypt\Models\RSA\PrivateKey === true) {
+			$valid	= openssl_private_decrypt($strData, $decData, array($keyObj->get(), $keyObj->getPassPhrase()), $pad);
+		} elseif ($keyObj instanceof \MTM\Encrypt\Models\RSA\PublicKey === true) {
+			$valid	= openssl_public_decrypt($strData, $decData, $keyObj->get(), $pad);
+		} else {
+			throw new \Exception("Not handled for key type");
+		}
 		if ($valid === true) {
 			return $decData;
 		} else {
-			throw new \Exception("Failed to decrypt");
+			throw new \Exception("Failed to decrypt: " . openssl_error_string());
 		}
 	}
 	public function getPublicAsSSH($pkeyObj)

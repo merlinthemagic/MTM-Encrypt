@@ -49,13 +49,21 @@ class PrivateKey extends Base
 	{
 	    return $this->getTool()->getPublicAsSSH($this);
 	}
-	public function decrypt($data)
+	public function decrypt($data, $pad=OPENSSL_PKCS1_PADDING)
 	{
-		return $this->getTool()->decrypt($this, $data);
+		return $this->getTool()->decrypt($this, $data, $pad);
 	}
-	public function sign($strData, $algo=OPENSSL_ALGO_SHA1)
+	public function encrypt($data, $pad=OPENSSL_PKCS1_PADDING)
+	{
+		return $this->getTool()->encrypt($this, $data, $pad);
+	}
+	public function sign($strData, $algo=OPENSSL_ALGO_SHA256)
 	{
 		return $this->getTool()->sign($this, $strData, $algo);
+	}
+	public function validateSignature($strData, $signature, $algo=OPENSSL_ALGO_SHA256)
+	{
+		return $this->getTool()->verifySign($this, $strData, $signature, $algo);
 	}
 	public function getBits()
 	{
