@@ -18,7 +18,7 @@ class CBC256 extends Base
 		$aad	= $this->getTool()->getRandomBytes($len);
 		return $this->encrypt($data, $aad);
 	}
-	public function decrypt($data, $iv, $tag, $aad="")
+	public function decrypt($data, $iv, $tag="", $aad="")
 	{
 		return $this->getTool()->decrypt($this, $data, $iv, $tag, $aad);
 	}
