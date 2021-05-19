@@ -12,13 +12,15 @@ class AES
 	{
 		return openssl_random_pseudo_bytes($len);
 	}
-	public function encrypt($keyObj, $strData, $aad="", $opts=OPENSSL_RAW_DATA)
+	public function encrypt($keyObj, $strData, $aad="", $iv=null, $opts=OPENSSL_RAW_DATA)
 	{
 		$ivLen		= openssl_cipher_iv_length($keyObj->getCipher());
-		if ($ivLen > 0) {
-			$iv 		= $this->getRandomBytes($ivLen);
-		} else {
-			$iv 		= "";
+		if ($iv === null) {
+			if ($ivLen > 0) {
+				$iv 		= $this->getRandomBytes($ivLen);
+			} else {
+				$iv 		= "";
+			}
 		}
 		//silence the function or it will complain when the cipher does not support AEAD
 		$encData	= @openssl_encrypt($strData, $keyObj->getCipher(), $keyObj->get(), $opts, $iv, $tag, $aad, 16);

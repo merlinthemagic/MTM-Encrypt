@@ -10,9 +10,9 @@ class ECB128 extends Base
 	{
 		$this->_cipher	= "aes-128-ecb";
 	}
-	public function encrypt($data, $aad="")
+	public function encrypt($data, $aad="", $iv=null, $opts=OPENSSL_RAW_DATA)
 	{
-		return $this->getTool()->encrypt($this, $data, $aad);
+		return $this->getTool()->encrypt($this, $data, $aad, $iv, $opts);
 	}
 	public function aadEncrypt($data, $len=40)
 	{
