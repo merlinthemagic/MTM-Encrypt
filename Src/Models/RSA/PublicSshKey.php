@@ -1,6 +1,6 @@
 <?php
-//© 2017 Martin Madsen
-namespace MTO\Data\Encryption\Keys;
+//ï¿½ 2023 Martin Peter Madsen
+namespace MTM\Encrypt\Models\RSA;
 
 class PublicSshKey extends Base
 {	
