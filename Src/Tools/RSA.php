@@ -1,5 +1,5 @@
 <?php
-//© 2019 Martin Peter Madsen
+//ï¿½ 2019 Martin Peter Madsen
 namespace MTM\Encrypt\Tools;
 
 class RSA
@@ -46,17 +46,19 @@ class RSA
 				"private_key_type"	=> OPENSSL_KEYTYPE_RSA,
 		);
 		
-		$res	= openssl_pkey_new($keyConf);
-		if (is_resource($res) === true) {
-			openssl_pkey_export($res, $pKey, $passPhrase);
-			openssl_free_key($res);
+		$rData	= openssl_pkey_new($keyConf);
+		if (
+			$rData instanceof \OpenSSLAsymmetricKey
+			|| is_resource($rData) === true
+		) {
+			openssl_pkey_export($rData, $pKey, $passPhrase);
 			$rObj	= \MTM\Encrypt\Factories::getRSA()->getPrivateKey($pKey);
 			$rObj->setPassPhrase($passPhrase);
 			
 			return $rObj;
 	
 		} else {
-			throw new \Exception("Invalid input");
+			throw new \Exception("Failed to generate private RSA key", 5555);
 		}
 	}
 	public function getPublicKeyFromPrivateKey($keyObj)
@@ -69,7 +71,6 @@ class RSA
 		//will duplicate the key
 		$res	= $this->getPrivateAsResource($keyObj);
 		$valid	= openssl_pkey_export($res, $pKey, null, array("config" => $this->getOpenSslPath()));
-		openssl_free_key($res);
 		if ($valid === false) {
 			throw new \Exception("Failed to extract private");
 		} else {
@@ -81,7 +82,6 @@ class RSA
 		//will duplicate the key
 		$res      = $this->getPrivateAsResource($keyObj);
 		$valid	  = openssl_pkey_export($res, $pKey, $newPassPhrase);
-		openssl_free_key($res);
 		if ($valid === false) {
 			throw new \Exception("Failed to extract private");
 		} else {
@@ -92,7 +92,6 @@ class RSA
 	{  
 	    $res      = $this->getPrivateAsResource($keyObj);
         $detail	  = openssl_pkey_get_details($res);
-        openssl_free_key($res);
         if ($detail !== false) {
             
             if (isset($detail["key"]) === false || strlen($detail["key"]) < 1) {
@@ -198,7 +197,6 @@ class RSA
 	    //input private key
 	    $res       = $this->getPrivateAsResource($pkeyObj);
 	    $detail    = openssl_pkey_get_details($res);
-	    openssl_free_key($res);
         if ($detail !== false) {
             
             //https://stackoverflow.com/questions/6648337/generate-ssh-keypair-form-php
@@ -225,7 +223,7 @@ class RSA
             return \MTM\Encrypt\Factories::getRSA()->getPublicSshKey($encKey);
             
         } else {
-            throw new \Exception("Failed to extract details for private key");
+            throw new \Exception("Failed to extract details for private key", 5555);
         }
 	}
 	private function getOpenSslPath()
@@ -244,11 +242,14 @@ class RSA
 	}
 	private function getPrivateAsResource($keyObj)
 	{
-	    $res	= openssl_pkey_get_private($keyObj->get(), $keyObj->getPassPhrase());
-	    if (is_resource($res) === true) {
-	        return $res;
+		$rData	= openssl_pkey_get_private($keyObj->get(), $keyObj->getPassPhrase());
+	    if (
+			$rData instanceof \OpenSSLAsymmetricKey
+			|| is_resource($rData) === true
+		) {
+			return $rData;
 	    } else {
-	        throw new \Exception("Failed to extract private key, maybe invalid pass phrase");
+	        throw new \Exception("Failed to extract private key, maybe invalid pass phrase", 5555);
 	    }
 	}
 }
