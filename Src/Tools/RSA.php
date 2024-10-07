@@ -48,7 +48,7 @@ class RSA
 		
 		$rData	= openssl_pkey_new($keyConf);
 		if (
-			$rData instanceof \OpenSSLAsymmetricKey
+			$rData instanceof \OpenSSLAsymmetricKey === true
 			|| is_resource($rData) === true
 		) {
 			openssl_pkey_export($rData, $pKey, $passPhrase);
